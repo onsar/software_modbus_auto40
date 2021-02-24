@@ -68,7 +68,7 @@ for section in sections:
         
     if parser.has_option(section,'server'):
         registers_list.append(section)
-        register_values_list[section="0.00"]
+        register_values_list[section]="0.00"
 
 
 # lista de serrvidores y registros de cada servidor
