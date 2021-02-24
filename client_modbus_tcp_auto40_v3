@@ -83,6 +83,8 @@ logging.info("*" * 4 + ' Servidores')
 logging.info(servers_list)
 logging.info("*" * 4 + ' Registros agrupados por servidor')
 logging.info(server_register_list)
+logging.info("*" * 4 + ' Diccionario de resultados')
+logging.info(register_values_list)
 
 ###########################################
 # definicion de funciones
@@ -185,8 +187,12 @@ def matrix_reading(tm):
         if connexion == True:
             for r in range(len(server_register_list[s])):
                 tx_register = server_register_list[s][r]
-                register_values_list.append(read_holding_value(tx_server, tx_register))
+                rx_value = read_holding_value(tx_server, tx_register)
+                register_values_list.append(rx_value)
                 # logging.info(register_values_list)
+                register_values_list[tx_register] = rx_value
+                
+                
                 
             url_values = ""
             for r in range(len(server_register_list[s])):
@@ -197,6 +203,7 @@ def matrix_reading(tm):
                 if r < len(server_register_list[s])-1:
                   url_values += "&"
             logging.info(url_values)
+            logging.info(register_values_list)
             emoncms_tx(tx_server,url_values)
 
                 
