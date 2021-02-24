@@ -124,12 +124,32 @@ class Battery(): #Creamos la clase
     def dataProcess(self, _enter_values_dict):
         self.enter_values_dict = _enter_values_dict
         
+        M_W_f = float(self.enter_values_dict["M_W"])
+        F_W_f = float(self.enter_values_dict["F_W"])
+        
+        
         
         if self.mode == "bat":
-            if float(self.enter_values_dict["M_W"]) > 0:
-                if(self.availCapacity() > self.enter_values_dict["M_W"]/60):
-                    self.enter_values_dict["M_W"] = "0.00"
+            if M_W_f < 0:       # consumiendo de red
+                if(self.availCapacity() > M_W_f/60):
+                    M_W_f = 0.00
+                    F_W_f=F_W_f + M_W_f
+                    self.unloadWh(60,M_W_f * -1)
+                else:
+                    self.mode = "net"
+                
+            if M_W_f >= 0:
+                if self.savedEnergy < self.batCapacity:
+                    M_W_f = 0.00
+                    F_W_f=F_W_f-M_W_f
+                    self.loadWh(60,(M_W_f))
+                else:
+                    self.mode = "net"
+    
 
+        
+        self.enter_values_dict["M_W"]= str(M_W_f)
+        self.enter_values_dict["F_W"]= str(F_W_f)  
         
         self.enter_values_dict["B_Energy"] = str(self.savedEnergy)
         self.enter_values_dict["B_mode"] = str(self.mode)
@@ -220,6 +240,9 @@ def matrix_reading(tm):
     threading.Timer(tm, matrix_reading,args=[tm]).start()
 
     logging.debug("*" * 4 + ' Recorremos servidores y sus registros')
+    
+    n_connexions = True
+    
     for s in range(len(servers_list)):
         #register_values_list=[]
     
@@ -236,6 +259,7 @@ def matrix_reading(tm):
             assert cli.connect()
         except:
             connexion = False
+            n_connexions = False
             logging.warning("Error en la conexión al Servidor")
 
         if connexion == True:
@@ -249,20 +273,20 @@ def matrix_reading(tm):
             # Llamada a la clase Battery
             values_processed_dict = lgChem.dataProcess(register_values_list)
             
-                
-            url_values = ""
-            n = 0
-            for r in values_processed_dict.keys():
-                tx_register = r
-                tx_value = values_processed_dict[r]
+    if n_connexions == True:
+        url_values = ""
+        n = 0
+        for r in values_processed_dict.keys():
+            tx_register = r
+            tx_value = values_processed_dict[r]
 
-                url_values += tx_register + "=" + tx_value
-                if n < len(values_processed_dict)-1:
-                  url_values += "&"
-                n=n+1
-            logging.info(url_values)
-            logging.info(values_processed_dict)
-            emoncms_tx(tx_server,url_values)
+            url_values += tx_register + "=" + tx_value
+            if n < len(values_processed_dict)-1:
+                url_values += "&"
+            n=n+1
+        logging.info(url_values)
+        logging.info(values_processed_dict)
+        emoncms_tx(tx_server,url_values)
 
                 
 
