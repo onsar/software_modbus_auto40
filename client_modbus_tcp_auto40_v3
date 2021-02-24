@@ -86,6 +86,60 @@ logging.info(server_register_list)
 logging.info("*" * 4 + ' Diccionario de resultados')
 logging.info(register_values_list)
 
+
+###########################################
+# definicion BATERIA
+###########################################
+
+class Battery(): #Creamos la clase 
+    def __init__(self, batCapacity, batPerformance, minEnergy, maxWLoad): #Batería
+
+        self.batCapacity = batCapacity          # Capacidad en vatios hora
+        self.batPerformance = batPerformance
+        self.minEnergy = minEnergy              # Porcentaje de la bateria
+        self.maxWLoad = maxWLoad
+        
+        self.savedEnergy = 0
+        self.mode = "net"
+        
+        #Variables de red
+        self.WhExpNet = 0
+        self.WhImpNet = 0
+        
+        self.enter_values_dict={}
+        
+        
+    def loadWh(self, power, seconds):
+        self.savedEnergy += power*seconds/3600
+    
+    def unloadWh(self, power, seconds):
+        self.savedEnergy -= power*seconds/3600
+        
+    def availCapacity(self):
+        value = self.savedEnergy - self.minEnergy * self.batCapacity/100
+        if value < 0: 
+            value = 0
+        return value
+    
+    def dataProcess(self, _enter_values_dict):
+        self.enter_values_dict = _enter_values_dict
+        
+        
+        if self.mode == "bat":
+            if float(self.enter_values_dict["M_W"]) > 0:
+                if(self.availCapacity() > self.enter_values_dict["M_W"]/60):
+                    self.enter_values_dict["M_W"] = "0.00"
+
+        
+        self.enter_values_dict["B_Energy"] = str(self.savedEnergy)
+        self.enter_values_dict["B_mode"] = str(self.mode)
+        return self.enter_values_dict       
+
+lgChem = Battery(6600, 98, 10, 1000 ) #Instancia
+
+
+
+
 ###########################################
 # definicion de funciones
 ###########################################
@@ -192,18 +246,22 @@ def matrix_reading(tm):
                 # logging.info(register_values_list)
                 register_values_list[tx_register] = rx_value
                 
-                
+            # Llamada a la clase Battery
+            values_processed_dict = lgChem.dataProcess(register_values_list)
+            
                 
             url_values = ""
-            for r in range(len(server_register_list[s])):
-                tx_register = server_register_list[s][r]
-                tx_value = register_values_list[r]
+            n = 0
+            for r in values_processed_dict.keys():
+                tx_register = r
+                tx_value = values_processed_dict[r]
 
                 url_values += tx_register + "=" + tx_value
-                if r < len(server_register_list[s])-1:
+                if n < len(values_processed_dict)-1:
                   url_values += "&"
+                n=n+1
             logging.info(url_values)
-            logging.info(register_values_list)
+            logging.info(values_processed_dict)
             emoncms_tx(tx_server,url_values)
 
                 
