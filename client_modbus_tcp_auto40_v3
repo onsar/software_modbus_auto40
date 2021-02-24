@@ -188,7 +188,7 @@ def matrix_reading(tm):
             for r in range(len(server_register_list[s])):
                 tx_register = server_register_list[s][r]
                 rx_value = read_holding_value(tx_server, tx_register)
-                register_values_list.append(rx_value)
+                # register_values_list.append(rx_value)
                 # logging.info(register_values_list)
                 register_values_list[tx_register] = rx_value
                 
