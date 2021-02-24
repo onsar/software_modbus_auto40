@@ -167,7 +167,7 @@ def matrix_reading(tm):
 
     logging.debug("*" * 4 + ' Recorremos servidores y sus registros')
     for s in range(len(servers_list)):
-        register_values_list=[]
+        #register_values_list=[]
     
         tx_server = servers_list[s]
         tx_url = parser.get(tx_server,'url')
