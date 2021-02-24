@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
+
+class Battery(): #Creamos la clase 
+    def __init__(self, batCapacity, batPerformance, minEnergy, maxWLoad): #Batería
+
+        self.batCapacity = batCapacity          # Capacidad en vatios hora
+        self.batPerformance = batPerformance
+        self.minEnergy = minEnergy              # Porcentaje de la bateria
+        self.maxWLoad = maxWLoad
+        
+        self.savedEnergy = 0
+        
+        #Variables de red
+        self.WhExpNet = 0
+        self.WhImpNet = 0
+        
+        
+    def loadWh(self, power, seconds):
+        self.savedEnergy += power*seconds/3600
+    
+    def unloadWh(self, power, seconds):
+        self.savedEnergy -= power*seconds/3600
+        
+    def availCapacity(self):
+        value = self.savedEnergy - self.minEnergy * self.batCapacity/100
+        if value < 0: 
+            value = 0
+        return value
+        
+
+lgChem = Battery(6600, 98, 10, 1000 ) #Instancia
+
+
+print('batCapacity: {} batPerformance: {}'.format(lgChem.batCapacity, lgChem.batPerformance))
+print('minEnergy: {} maxWLoad: {}'.format(lgChem.minEnergy, lgChem.maxWLoad))
+print('savedEnergy: {}'.format(lgChem.savedEnergy))
+
+lgChem.loadWh(18000,60)
+
+print('savedEnergy: {}'.format(lgChem.savedEnergy))
+
+lgChem.unloadWh(180,30)
+
+print('savedEnergy: {}'.format(lgChem.savedEnergy))
+
+availEnergy = lgChem.availCapacity()
+
+print('availCapacity(): {}'.format(availEnergy))
+
+
+
+
