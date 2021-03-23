@@ -11,6 +11,9 @@ import configparser
 import urllib.request
 import time
 
+#[os]
+import json
+
 import sched, threading
 
 import logging
@@ -24,6 +27,9 @@ logging.basicConfig(
         format='%(asctime)s %(levelname)s %(message)s',
         datefmt='%m/%d/%Y %I:%M:%S %p')
 
+
+#[os]
+mode_i = "net"
 
 #################################
 # Parseo de variables del .ini
@@ -99,6 +105,8 @@ class Battery(): #Creamos la clase
         self.savedEnergy = 0
         # self.mode = "net"
         self.mode = "bat"
+        #[os]
+        global mode_i
         
         #Variables de red
         self.WhExpNetAdd = 0
@@ -123,7 +131,12 @@ class Battery(): #Creamos la clase
     
     def dataProcess(self, _enter_values_dict):
         
-        self.mode = "bat"
+        #[os]
+        logging.info("mode_i en BATERIA")
+        logging.info(mode_i)
+        
+        self.mode = mode_i
+        
         
         self.enter_values_dict = _enter_values_dict
         
@@ -151,14 +164,20 @@ class Battery(): #Creamos la clase
                     M_W_f = 0.00
                 else:
                     self.mode = "net"
+                                      
                     
-                    
-        self.enter_values_dict["F_Site_Energy_Year"]= str(F_Site_Energy_Year_f) 
+        # self.enter_values_dict["F_Site_Energy_Year"]= str(F_Site_Energy_Year_f) 
+        
+        self.enter_values_dict["F_Site_Energy_Year"]= "{:.2f}".format(F_Site_Energy_Year_f)
 
-        self.enter_values_dict["F_Site_Power"]= str(F_W_f) 
+        # self.enter_values_dict["F_Site_Power"]= str(F_W_f) 
+        self.enter_values_dict["F_Site_Power"]=  "{:.2f}".format(F_W_f)
 
-        self.enter_values_dict["M_W"]= str(M_W_f)
-        self.enter_values_dict["F_W"]= str(F_W_f) 
+        # self.enter_values_dict["M_W"]= str(M_W_f)
+        self.enter_values_dict["M_W"]=  "{:.2f}".format(M_W_f)
+        
+        #self.enter_values_dict["F_W"]= str(F_W_f) 
+        self.enter_values_dict["F_W"]=  "{:.2f}".format(F_W_f) 
         
         # self.enter_values_dict["M_TotWhExp"]= str(M_TotWhExp_f - self.WhExpNetAdd)
         self.enter_values_dict["M_TotWhExp"]= "{:.2f}".format(M_TotWhExp_f - self.WhExpNetAdd)
@@ -197,7 +216,7 @@ def emoncms_tx(_tx_server,_url_values):
     response = urllib.request.urlopen(full_url)
     web_page=response.read()
     logging.info(web_page)
-    web_page_str = str(web_page)
+
 
 # FUNCION: preguntar holding valor por MODBUS
 def read_holding_value(tx_server_, tx_register_):
@@ -305,12 +324,54 @@ def matrix_reading(tm):
         logging.info(url_values)
         emoncms_tx(tx_server,url_values)
 
-                
+ 
+#[os]
+def ask_state(tm):
+    threading.Timer(tm, ask_state,args=[tm]).start()
 
+    global mode_i
+    logging.info("*" * 4 + ' Pregunta modo de funcionamiento')
+    full_url= 'https://center.autoconsumo.cloud/api/get/instalation/mode/c7e7ebc1783ea5d8faf432f46aa8942e659718a7'
+    response = urllib.request.urlopen(full_url)
+    web_page=response.read()
+    web_page_str = str(web_page)
+    decoded = json.loads(web_page)
+    logging.info(decoded)
+    ai = decoded["ai"]
+    logging.info(ai)
+    mode_s = decoded["mode"]
+    logging.info(mode_s)
+    
+    # 1 consumo de baterías
+    # 2 consumo de red
+    # 3 excedente a baterías
+    # 4 apoyo de baterías
+    # 5 apoyo de red
+    # 6 Excedente a baterías y carga de red
+    # 7 excedente a red
+
+    if mode_s == 1 or mode_s == 3 or  mode_s == 4 :
+        # self.mode = "bat"
+        mode_i = "bat"
+        
+    elif mode_s == 0 or mode_s == 2 or mode_s == 5 or  mode_s == 7 :    
+        mode_i = "net"
+        
+    elif mode_s == 6 :     
+        mode_i = "net"
+    else:
+        mode_i = "error"
+        
+    logging.info("mode_i")
+    logging.info(mode_i)
+    
 
 ###########################################
 # Ejecución temporal de las funciones
 ###########################################
 
 matrix_reading(59.0)
+
+#[os]
+ask_state(900.0)
 
